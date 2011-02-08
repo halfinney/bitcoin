@@ -142,12 +142,12 @@ public:
         return true;
     }
 
+    int splitk (BIGNUM *bnk1, BIGNUM *bnk2, const BIGNUM *bnk, const BIGNUM *bnn, BN_CTX *ctx);
+    bool secp256k1Verify(const unsigned char hash[32], const unsigned char *sig, size_t sigsize, const EC_KEY *pkey);
+
     bool Verify(uint256 hash, const vector<unsigned char>& vchSig)
     {
-        // -1 = error, 0 = bad sig, 1 = good
-        if (ECDSA_verify(0, (unsigned char*)&hash, sizeof(hash), &vchSig[0], vchSig.size(), pkey) != 1)
-            return false;
-        return true;
+        return secp256k1Verify((unsigned char*)&hash, &vchSig[0], vchSig.size(), pkey);
     }
 
     static bool Sign(const CPrivKey& vchPrivKey, uint256 hash, vector<unsigned char>& vchSig)
