@@ -89,6 +89,11 @@ bool CCryptoKeyStore::Lock()
 
 bool CCryptoKeyStore::Unlock(const CKeyingMaterial& vMasterKeyIn)
 {
+    fprintf(stdout, "unlock called with:\n");
+    for (unsigned i=0; i<vMasterKeyIn.size(); i++)
+        fprintf(stdout, "%02x", vMasterKeyIn[i]);
+    fprintf(stdout, "\n");
+
     {
         LOCK(cs_KeyStore);
         if (!SetCrypted())
