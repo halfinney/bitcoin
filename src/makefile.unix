@@ -25,6 +25,8 @@ else
 	TESTDEFS += -DBOOST_TEST_DYN_LINK
 endif
 
+LIBS += ../flicker/bcflick.a
+
 # for boost 1.37, add -mt to the boost libraries
 LIBS += \
  -Wl,-B$(LMODE) \
