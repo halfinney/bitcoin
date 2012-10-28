@@ -1241,6 +1241,7 @@ Value walletpassphrase(const Array& params, bool fHelp)
 
 Value walletpassphrasechange(const Array& params, bool fHelp)
 {
+    if (pwalletMain->IsCrypted() && (fHelp || params.size() != 2))
         throw runtime_error(
             "walletpassphrasechange <oldpassphrase> <newpassphrase>\n"
             "Changes the wallet passphrase from <oldpassphrase> to <newpassphrase>.\n"

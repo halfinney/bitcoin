@@ -88,6 +88,13 @@ bool CCryptoKeyStore::AddKey(const CKey& key)
         bool fCompressed;
         if (!EncryptSecret(key.GetSecret(fCompressed), vchPubKey.GetHash(), vchCryptedSecret))
             return false;
+#if 0
+        fprintf(stdout, "pk:\n");
+        for (unsigned i=0; i<vchPubKey.Raw().size(); i++)
+            fprintf(stdout, "%02x%s", vchPubKey.Raw()[i], ((i+1)%16)?" ":"\n");
+        if (vchPubKey.Raw().size()%16)
+            fprintf(stdout, "\n");
+#endif
 
         if (!AddCryptedKey(key.GetPubKey(), vchCryptedSecret))
             return false;
@@ -127,6 +134,13 @@ bool CCryptoKeyStore::GetKey(const CKeyID &address, CKey& keyOut) const
                 return false;
             keyOut.SetPubKey(vchPubKey);
             keyOut.SetSecret(vchSecret);
+#if 0
+            fprintf(stdout, "pk:\n");
+            for (unsigned i=0; i<vchPubKey.Raw().size(); i++)
+                fprintf(stdout, "%02x%s", vchPubKey.Raw()[i], ((i+1)%16)?" ":"\n");
+            if (vchPubKey.Raw().size()%16)
+                fprintf(stdout, "\n");
+#endif
             return true;
         }
     }
@@ -168,6 +182,13 @@ bool CCryptoKeyStore::EncryptKeys()
             bool fCompressed;
             if (!EncryptSecret(key.GetSecret(fCompressed), vchPubKey.GetHash(), vchCryptedSecret))
                 return false;
+#if 0
+            fprintf(stdout, "pk:\n");
+            for (unsigned i=0; i<vchPubKey.Raw().size(); i++)
+                fprintf(stdout, "%02x%s", vchPubKey.Raw()[i], ((i+1)%16)?" ":"\n");
+            if (vchPubKey.Raw().size()%16)
+#endif
+                fprintf(stdout, "\n");
             if (!AddCryptedKey(vchPubKey, vchCryptedSecret))
                 return false;
         }
