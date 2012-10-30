@@ -102,9 +102,9 @@ bool CCrypter::Decrypt(const std::vector<unsigned char>& vchCiphertext, CKeyingM
 
 extern "C" {
     int flicker_encrypt(unsigned char *ctext, unsigned char const *ptext, unsigned ptsize,
-            unsigned char const *iv);
+            unsigned char const *iv, const char *datadir);
     int flicker_decrypt(unsigned char *ptext, unsigned char const *ctext, unsigned ctsize,
-            unsigned char const *iv);
+            unsigned char const *iv, const char *datadir);
 };
 
 bool EncryptSecret(const CSecret &vchPlaintext, const uint256& nIV, std::vector<unsigned char> &vchCiphertext)
@@ -112,7 +112,9 @@ bool EncryptSecret(const CSecret &vchPlaintext, const uint256& nIV, std::vector<
     std::vector<unsigned char> chIV(WALLET_CRYPTO_KEY_SIZE);
     memcpy(&chIV[0], &nIV, WALLET_CRYPTO_KEY_SIZE);
     vchCiphertext.resize(vchPlaintext.size()+WALLET_CRYPTO_KEY_SIZE);
-    int size = flicker_encrypt(&vchCiphertext[0], &vchPlaintext[0], vchPlaintext.size(), &chIV[0]);
+    boost::filesystem::path datadir = GetDataDir();
+    int size = flicker_encrypt(&vchCiphertext[0], &vchPlaintext[0], vchPlaintext.size(), &chIV[0],
+           datadir.string().c_str());
     if (size < 0)
         return false;
     vchCiphertext.resize(size);
@@ -124,7 +126,9 @@ bool DecryptSecret(const std::vector<unsigned char>& vchCiphertext, const uint25
     std::vector<unsigned char> chIV(WALLET_CRYPTO_KEY_SIZE);
     memcpy(&chIV[0], &nIV, WALLET_CRYPTO_KEY_SIZE);
     vchPlaintext.resize(vchCiphertext.size());
-    int size = flicker_decrypt(&vchPlaintext[0], &vchCiphertext[0], vchCiphertext.size(), &chIV[0]);
+    boost::filesystem::path datadir = GetDataDir();
+    int size = flicker_decrypt(&vchPlaintext[0], &vchCiphertext[0], vchCiphertext.size(), &chIV[0],
+           datadir.string().c_str());
     if (size < 0)
         return false;
     vchPlaintext.resize(size);

@@ -84,7 +84,7 @@ bool CWallet::Unlock(const SecureString& strWalletPassphrase)
     return true;
 }
 
-extern "C" int flicker_init(unsigned char *key, int keylen);
+extern "C" int flicker_init(unsigned char *key, int keylen, const char *datadir);
 
 // do in secure mode
 bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase)
@@ -101,7 +101,8 @@ bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase,
             if (!crypter.Decrypt(pMasterKey.second.vchCryptedKey, vMasterKey))
                 return false;
 
-            flicker_init(&vMasterKey[0], vMasterKey.size());
+            boost::filesystem::path datadir = GetDataDir();
+            flicker_init(&vMasterKey[0], vMasterKey.size(), datadir.string().c_str());
 
             if (true /*CCryptoKeyStore::Unlock(vMasterKey)*/)
             {
@@ -205,7 +206,8 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
     vMasterKey.resize(WALLET_CRYPTO_KEY_SIZE);
     RAND_bytes(&vMasterKey[0], WALLET_CRYPTO_KEY_SIZE);
 
-    flicker_init(&vMasterKey[0], vMasterKey.size());
+    boost::filesystem::path datadir = GetDataDir();
+    flicker_init(&vMasterKey[0], vMasterKey.size(), datadir.string().c_str());
 
     CMasterKey kMasterKey;
 
