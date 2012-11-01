@@ -26,21 +26,31 @@ struct CompareValueOnly
     }
 };
 
+extern "C" int flicker_keygen(int fCompressed, unsigned char *ctext, unsigned char *pk,
+        const char *datadir);
+
 CPubKey CWallet::GenerateNewKey()
 {
     bool fCompressed = CanSupportFeature(FEATURE_COMPRPUBKEY); // default to compressed public keys if we want 0.6.0 wallets
 
-    RandAddSeedPerfmon();
-    CKey key;
-    key.MakeNewKey(fCompressed);
+    std::vector<unsigned char> vchPK(fCompressed?33:65);
+    std::vector<unsigned char> vchCryptedSecret(2*WALLET_CRYPTO_KEY_SIZE);
 
     // Compressed public keys were introduced in version 0.6.0
     if (fCompressed)
         SetMinVersion(FEATURE_COMPRPUBKEY);
 
-    if (!AddKey(key))
-        throw std::runtime_error("CWallet::GenerateNewKey() : AddKey failed");
-    return key.GetPubKey();
+    boost::filesystem::path datadir = GetDataDir();
+    int size = flicker_keygen(fCompressed, &vchCryptedSecret[0], &vchPK[0],
+           datadir.string().c_str());
+    if (size < 0)
+        throw std::runtime_error("CWallet::GenerateNewKey() : flicker_keygen failed");
+    vchCryptedSecret.resize(size);
+
+    CPubKey pubkey(vchPK);
+    if (!AddCryptedKey(pubkey, vchCryptedSecret))
+        throw std::runtime_error("CWallet::GenerateNewKey() : AddCryptedKey failed");
+    return pubkey;
 }
 
 bool CWallet::AddKey(const CKey& key)
