@@ -1406,6 +1406,40 @@ bool Solver(const CKeyStore& keystore, const CScript& scriptPubKey, uint256 hash
     return false;
 }
 
+
+/* make a dummy signature approximately the same size as the real sig */
+bool SolverFake(const CKeyStore& keystore, const CScript& scriptPubKey,
+                  CScript& scriptSigRet, txnouttype& whichTypeRet)
+{
+    scriptSigRet.clear();
+
+    vector<valtype> vSolutions;
+    if (!Solver(scriptPubKey, whichTypeRet, vSolutions))
+        return false;
+
+    CKeyID keyID;
+    vector<unsigned char> vchSig;
+    vchSig.resize(73);
+    CPubKey vch;
+    switch (whichTypeRet)
+    {
+    case TX_PUBKEY:
+        scriptSigRet << vchSig;
+        return true;
+    case TX_PUBKEYHASH:
+        scriptSigRet << vchSig;
+        keyID = CKeyID(uint160(vSolutions[0]));
+        keystore.GetPubKey(keyID, vch);
+        scriptSigRet << vch;
+        return true;
+    case TX_NONSTANDARD:
+    case TX_MULTISIG:
+    case TX_SCRIPTHASH:
+        break;
+    }
+    return false;
+}
+
 int ScriptSigArgsExpected(txnouttype t, const std::vector<std::vector<unsigned char> >& vSolutions)
 {
     switch (t)
@@ -1643,6 +1677,7 @@ bool SignSignature(const CKeyStore &keystore, const CScript& fromPubKey, CTransa
     return VerifyScript(txin.scriptSig, fromPubKey, txTo, nIn, true, 0);
 }
 
+
 bool SignSignature(const CKeyStore &keystore, const CTransaction& txFrom, CTransaction& txTo, unsigned int nIn, int nHashType)
 {
     assert(nIn < txTo.vin.size());
@@ -1652,6 +1687,26 @@ bool SignSignature(const CKeyStore &keystore, const CTransaction& txFrom, CTrans
 
     return SignSignature(keystore, txout.scriptPubKey, txTo, nIn, nHashType);
 }
+
+
+/* make a dummy signature approximately the same size as the real sig */
+bool SignFake(const CKeyStore &keystore, const CTransaction& txFrom, CTransaction& txTo, unsigned int nIn)
+{
+    assert(nIn < txTo.vin.size());
+    CTxIn& txin = txTo.vin[nIn];
+    assert(txin.prevout.n < txFrom.vout.size());
+    const CTxOut& txout = txFrom.vout[txin.prevout.n];
+
+    txnouttype whichType;
+    if (!SolverFake(keystore, txout.scriptPubKey, txin.scriptSig, whichType))
+        return false;
+
+    if (whichType == TX_SCRIPTHASH)
+        return false;
+
+    return true;
+}
+
 
 bool VerifySignature(const CTransaction& txFrom, const CTransaction& txTo, unsigned int nIn, bool fValidatePayToScriptHash, int nHashType)
 {
