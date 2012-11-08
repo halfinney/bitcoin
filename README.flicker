@@ -9,6 +9,7 @@ Run make in flicker/examples/{app,pal}
 Copy flicker/examples/pal/bcflick.bin to ~/.bitcoin
 Run make bitcoind in bitcoin/src
 Boot into a secure mode (eg. boot from a live CD)
-Run bitcoind and run bitcoind encryptwallet <passphrase>; this will take quite a long time
-Boot into a regular mode and flicker will limit the decrypted coins to the number of seconds specified in flicker/examples/app/bcflick.c, without requiring a passphrase
+Run bitcoind -flickerlimit=<secs>  where secs is the average interval between spending coins
+Run bitcoind encryptwallet <passphrase>; this will take quite a long time
+Boot into a regular mode and flicker will limit the decrypted coins to the number of seconds you specified, without requiring a passphrase
 If you want to spend more, boot into the secure mode and run regular bitcoin with the passphrase

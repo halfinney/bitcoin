@@ -112,7 +112,8 @@ bool CWallet::Unlock(const SecureString& strWalletPassphrase)
     return true;
 }
 
-extern "C" int flicker_init(unsigned char *key, int keylen, const char *datadir);
+extern "C" int flicker_init(unsigned char *key, int keylen, int limit, const char *datadir);
+#define FLICKERLIMIT 3600
 
 // do in secure mode
 bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase)
@@ -130,7 +131,8 @@ bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase,
                 return false;
 
             boost::filesystem::path datadir = GetDataDir();
-            flicker_init(&vMasterKey[0], vMasterKey.size(), datadir.string().c_str());
+            flicker_init(&vMasterKey[0], vMasterKey.size(),
+                    (int)GetArg("-flickerlimit", FLICKERLIMIT), datadir.string().c_str());
 
             if (true /*CCryptoKeyStore::Unlock(vMasterKey)*/)
             {
@@ -235,7 +237,8 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
     RAND_bytes(&vMasterKey[0], WALLET_CRYPTO_KEY_SIZE);
 
     boost::filesystem::path datadir = GetDataDir();
-    flicker_init(&vMasterKey[0], vMasterKey.size(), datadir.string().c_str());
+    flicker_init(&vMasterKey[0], vMasterKey.size(),
+            (int)GetArg("-flickerlimit", FLICKERLIMIT), datadir.string().c_str());
 
     CMasterKey kMasterKey;
 
