@@ -1562,7 +1562,8 @@ void CWallet::ReserveKeyFromKeyPool(int64& nIndex, CKeyPool& keypool)
     {
         LOCK(cs_wallet);
 
-        if (!IsLocked())
+        // Don't create keypool until crypted so we don't have to encrypt and discard keys
+        if (!IsLocked() && IsCrypted())
             TopUpKeyPool();
 
         // Get the oldest key
