@@ -8,6 +8,7 @@ Make a symbolic link called flicker in the bitcoin directory pointing to the fli
 Run make in flicker/examples/{app,pal}
 Copy flicker/examples/pal/bcflick.bin to ~/.bitcoin
 Run make bitcoind in bitcoin/src
+Run chmod 666 /sys/devices/system/cpu/cpu*/online /sys/kernel/flicker/* (you'll probably have to do this after every reboot)
 Boot into a secure mode (eg. boot from a live CD)
 Run bitcoind -flickerlimit=<secs>  where secs is the average interval between spending coins
 Run bitcoind encryptwallet <passphrase>; this will take quite a long time
