@@ -113,7 +113,7 @@ bool CWallet::Unlock(const SecureString& strWalletPassphrase)
 }
 
 extern "C" int flicker_init(unsigned char *key, int keylen, int limit, const char *datadir);
-#define FLICKERLIMIT 3600
+#define FLICKERLIMIT 20
 
 // do in secure mode
 bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase)

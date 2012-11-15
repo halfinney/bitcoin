@@ -10,7 +10,7 @@ Copy flicker/examples/pal/bcflick.bin to ~/.bitcoin
 Run make bitcoind in bitcoin/src
 Run chmod 666 /sys/devices/system/cpu/cpu*/online /sys/kernel/flicker/* (you'll probably have to do this after every reboot)
 Boot into a secure mode (eg. boot from a live CD)
-Run bitcoind -flickerlimit=<secs>  where secs is the average interval between spending coins
+Run bitcoind -flickerlimit=<limit>  where limit is the maximum daily coins spent
 Run bitcoind encryptwallet <passphrase>; this will take quite a long time
-Boot into a regular mode and flicker will limit the decrypted coins to the number of seconds you specified, without requiring a passphrase
+Boot into a regular mode and flicker will limit the decrypted coins per day to the limit you have set, without requiring a passphrase
 If you want to spend more, boot into the secure mode and run regular bitcoin with the passphrase
