@@ -115,6 +115,22 @@ bool CCryptoKeyStore::AddCryptedKey(const CPubKey &vchPubKey, const std::vector<
     return true;
 }
 
+bool CCryptoKeyStore::GetCryptedKey(const CPubKey &vchPubKey, std::vector<unsigned char> &vchCryptedSecret) const
+{
+    {
+        LOCK(cs_KeyStore);
+        if (!IsCrypted())
+            return false;
+
+        CKeyID address = vchPubKey.GetID();
+        CryptedKeyMap::const_iterator mi = mapCryptedKeys.find(address);
+        if (mi == mapCryptedKeys.end())
+            return false;
+        vchCryptedSecret = (*mi).second.second;
+    }
+    return true;
+}
+
 bool CCryptoKeyStore::GetKey(const CKeyID &address, CKey& keyOut) const
 {
     {

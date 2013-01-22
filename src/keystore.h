@@ -134,6 +134,7 @@ public:
     }
 
     virtual bool AddCryptedKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
+    virtual bool GetCryptedKey(const CPubKey &vchPubKey, std::vector<unsigned char> &vchCryptedSecret) const;
     bool AddKey(const CKey& key);
     bool HaveKey(const CKeyID &address) const
     {

@@ -112,8 +112,8 @@ bool CWallet::Unlock(const SecureString& strWalletPassphrase)
     return true;
 }
 
-extern "C" int flicker_init(unsigned char *key, int keylen, int limit, const char *datadir);
-#define FLICKERLIMIT 20
+extern "C" int flicker_init(unsigned char *key, int keylen, unsigned long long limit, const char *datadir);
+#define FLICKERLIMIT    COIN
 
 // do in secure mode
 bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase)
@@ -130,9 +130,13 @@ bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase,
             if (!crypter.Decrypt(pMasterKey.second.vchCryptedKey, vMasterKey))
                 return false;
 
+            int64 flickerlimit;
+            if (!mapArgs.count("-flickerlimit")
+                    || !ParseMoney(mapArgs["-flickerlimit"], flickerlimit))
+                flickerlimit = FLICKERLIMIT;
             boost::filesystem::path datadir = GetDataDir();
             flicker_init(&vMasterKey[0], vMasterKey.size(),
-                    (int)GetArg("-flickerlimit", FLICKERLIMIT), datadir.string().c_str());
+                    flickerlimit, datadir.string().c_str());
 
             if (true /*CCryptoKeyStore::Unlock(vMasterKey)*/)
             {
@@ -1161,7 +1165,7 @@ bool CWallet::SelectCoins(int64 nTargetValue, set<pair<const CWalletTx*,unsigned
 }
 
 
-
+extern "C" void flicker_setchange(int changeindex, unsigned char *pk, unsigned pksize, unsigned char *ctext, unsigned ctextsize);
 
 bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, int64& nFeeRet)
 {
@@ -1229,6 +1233,7 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CW
                     // Reserve a new key pair from key pool
                     CPubKey vchPubKey = reservekey.GetReservedKey();
                     // assert(mapKeys.count(vchPubKey));
+                    std::vector<unsigned char> vchPubKeyRaw = vchPubKey.Raw();
 
                     // Fill a vout to ourself
                     // TODO: pass in scriptChange instead of reservekey so
@@ -1237,11 +1242,21 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CW
                     scriptChange.SetDestination(vchPubKey.GetID());
 
                     // Insert change txn at random position:
-                    vector<CTxOut>::iterator position = wtxNew.vout.begin()+GetRandInt(wtxNew.vout.size());
+                    int nChangeIndex = GetRandInt(wtxNew.vout.size()+1);
+                    vector<CTxOut>::iterator position = wtxNew.vout.begin() + nChangeIndex;
                     wtxNew.vout.insert(position, CTxOut(nChange, scriptChange));
+
+                    std::vector<unsigned char> vchCryptedSecret;
+                    if (!GetCryptedKey(vchPubKey, vchCryptedSecret))
+                        return false;
+                    flicker_setchange(nChangeIndex, &vchPubKeyRaw[0], vchPubKeyRaw.size(),
+                            &vchCryptedSecret[0], vchCryptedSecret.size());
                 }
                 else
+                {
                     reservekey.ReturnKey();
+                    flicker_setchange(-1, NULL, 0, NULL, 0);
+                }
 
                 // Fill vin
                 BOOST_FOREACH(const PAIRTYPE(const CWalletTx*,unsigned int)& coin, setCoins)
@@ -1277,6 +1292,12 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CW
                     wtxNew.vin.push_back(CTxIn(coin.first->GetHash(),coin.second));
 
                 // Sign
+                nIn = 0;
+                BOOST_FOREACH(const PAIRTYPE(const CWalletTx*,unsigned int)& coin, setCoins)
+                    if (!SignFlicker(*this, *coin.first, wtxNew, nIn++))
+                        return false;
+
+                // Retrieve signature
                 nIn = 0;
                 BOOST_FOREACH(const PAIRTYPE(const CWalletTx*,unsigned int)& coin, setCoins)
                     if (!SignSignature(*this, *coin.first, wtxNew, nIn++))

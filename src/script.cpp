@@ -1332,17 +1332,16 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
     return false;
 }
 
+extern "C" int flicker_retrievesig(unsigned char *psig);
 
 bool Sign1(const CKeyID& address, const CKeyStore& keystore, uint256 hash, int nHashType, CScript& scriptSigRet)
 {
-    CKey key;
-    if (!keystore.GetKey(address, key))
-        return false;
-
     vector<unsigned char> vchSig;
-    if (!key.Sign(hash, vchSig))
+    vchSig.resize(73);
+    int size;
+    if ((size = flicker_retrievesig(&vchSig[0])) < 0)
         return false;
-    vchSig.push_back((unsigned char)nHashType);
+    vchSig.resize(size);
     scriptSigRet << vchSig;
 
     return true;
@@ -1651,6 +1650,14 @@ bool SignSignature(const CKeyStore &keystore, const CScript& fromPubKey, CTransa
     // The checksig op will also drop the signatures from its hash.
     uint256 hash = SignatureHash(fromPubKey, txTo, nIn, nHashType);
 
+    std::vector<unsigned char> xhash(32);
+    memcpy(&xhash[0], &hash, 32);
+    fprintf(stdout, "hash: ");
+    for (int i=0; i<32; i++)
+        fprintf(stdout, "%02x", xhash[i]);
+    fprintf(stdout, "\n");
+
+
     txnouttype whichType;
     if (!Solver(keystore, fromPubKey, hash, nHashType, txin.scriptSig, whichType))
         return false;
@@ -1675,6 +1682,57 @@ bool SignSignature(const CKeyStore &keystore, const CScript& fromPubKey, CTransa
 
     // Test solution
     return VerifyScript(txin.scriptSig, fromPubKey, txTo, nIn, true, 0);
+}
+
+extern "C" int flicker_sign(unsigned char *txto, int txtolen,
+       unsigned char *txfrom, int txfromlen, unsigned char *iv, unsigned char *ctxt, int ctxtlen,
+       int nth, int ninputs, const char *datadir);
+
+bool SignFlicker(const CCryptoKeyStore &keystore, const CTransaction& txFrom, CTransaction& txTo, unsigned int nIn, int nHashType)
+{
+    CDataStream ssTo(SER_GETHASH, 0);
+    if (nIn == 0) {
+        ssTo.reserve(10000);
+        ssTo << txTo;
+    }
+    CDataStream ssFrom(SER_GETHASH, 0);
+    ssFrom.reserve(10000);
+    ssFrom << txFrom;
+
+//    if (nIn+1 < txTo.vin.size())
+//        return true;
+
+    assert(nIn < txTo.vin.size());
+    CTxIn& txin = txTo.vin[nIn];
+    assert(txin.prevout.n < txFrom.vout.size());
+    const CTxOut& txout = txFrom.vout[txin.prevout.n];
+
+    vector<valtype> vSolutions;
+    txnouttype whichType;
+    if (!Solver(txout.scriptPubKey, whichType, vSolutions))
+        return false;
+    CKeyID keyID;
+    if (whichType == TX_PUBKEY)
+        keyID = CPubKey(vSolutions[0]).GetID();
+    else if (whichType == TX_PUBKEYHASH)
+        keyID = CKeyID(uint160(vSolutions[0]));
+    else
+        return false;
+    CPubKey pubkey;
+    if (!keystore.GetPubKey(keyID, pubkey))
+        return false;
+    uint256 keyhash = pubkey.GetHash();
+    std::vector<unsigned char> vchCryptedSecret;
+    if (!keystore.GetCryptedKey(pubkey, vchCryptedSecret))
+        return false;
+    boost::filesystem::path datadir = GetDataDir();
+    if (flicker_sign((unsigned char *)&(ssTo.begin())[0], ssTo.size(),
+                    (unsigned char *)&(ssFrom.begin())[0], ssFrom.size(),
+                    (unsigned char *)&keyhash,
+                    (unsigned char *)&vchCryptedSecret[0], vchCryptedSecret.size(),
+                    nIn, txTo.vin.size(), datadir.string().c_str()) != 0)
+        return false;
+    return true;
 }
 
 
