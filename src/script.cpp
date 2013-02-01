@@ -1650,14 +1650,6 @@ bool SignSignature(const CKeyStore &keystore, const CScript& fromPubKey, CTransa
     // The checksig op will also drop the signatures from its hash.
     uint256 hash = SignatureHash(fromPubKey, txTo, nIn, nHashType);
 
-    std::vector<unsigned char> xhash(32);
-    memcpy(&xhash[0], &hash, 32);
-    fprintf(stdout, "hash: ");
-    for (int i=0; i<32; i++)
-        fprintf(stdout, "%02x", xhash[i]);
-    fprintf(stdout, "\n");
-
-
     txnouttype whichType;
     if (!Solver(keystore, fromPubKey, hash, nHashType, txin.scriptSig, whichType))
         return false;
