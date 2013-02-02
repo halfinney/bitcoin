@@ -13,6 +13,6 @@ Boot into a secure mode (eg. boot from a live CD)
 Run regular bitcoind temporarily
 Run bitcoind encryptwallet <passphrase>
 Run bitcoind -flickerlimit=<limit> &  where limit is the maximum daily limit of bitcoins spent
-Run bitcoind changewalletpassphrase <passphrase> <passphrase>
+Run bitcoind walletpassphrasechange <passphrase> <passphrase>
 Boot into a regular mode and flicker will limit the amount spent per day to the limit you have set, without requiring a passphrase
 If you want to spend more, boot into the secure mode and run regular bitcoin with the passphrase
