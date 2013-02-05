@@ -1378,6 +1378,7 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey)
 
 
 
+extern "C" char *flicker_error(void);
 
 string CWallet::SendMoney(CScript scriptPubKey, int64 nValue, CWalletTx& wtxNew, bool fAskFee)
 {
@@ -1395,8 +1396,13 @@ string CWallet::SendMoney(CScript scriptPubKey, int64 nValue, CWalletTx& wtxNew,
         string strError;
         if (nValue + nFeeRequired > GetBalance())
             strError = strprintf(_("Error: This transaction requires a transaction fee of at least %s because of its amount, complexity, or use of recently received funds  "), FormatMoney(nFeeRequired).c_str());
-        else
-            strError = _("Error: Transaction creation failed  ");
+        else {
+            char *ferr = flicker_error();
+            if (ferr)
+                strError = ferr;
+            else
+                strError = _("Error: Transaction creation failed  ");
+        }
         printf("SendMoney() : %s", strError.c_str());
         return strError;
     }
