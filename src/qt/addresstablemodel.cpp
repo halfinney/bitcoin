@@ -327,12 +327,12 @@ QString AddressTableModel::addRow(const QString &type, const QString &label, con
     {
         // Generate a new address to associate with given label
         WalletModel::UnlockContext ctx(walletModel->requestUnlock());
-        if(!ctx.isValid())
-        {
-            // Unlock wallet failed or was cancelled
-            editStatus = WALLET_UNLOCK_FAILURE;
-            return QString();
-        }
+//        if(!ctx.isValid())
+//        {
+//            // Unlock wallet failed or was cancelled
+//            editStatus = WALLET_UNLOCK_FAILURE;
+//            return QString();
+//        }
         CPubKey newKey;
         if(!wallet->GetKeyFromPool(newKey, true))
         {

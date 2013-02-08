@@ -110,12 +110,12 @@ void SendCoinsDialog::on_sendButton_clicked()
     }
 
     WalletModel::UnlockContext ctx(model->requestUnlock());
-    if(!ctx.isValid())
-    {
-        // Unlock wallet was cancelled
-        fNewRecipientAllowed = true;
-        return;
-    }
+//    if(!ctx.isValid())
+//    {
+//        // Unlock wallet was cancelled
+//        fNewRecipientAllowed = true;
+//        return;
+//    }
 
     WalletModel::SendCoinsReturn sendstatus = model->sendCoins(recipients);
     switch(sendstatus.status)

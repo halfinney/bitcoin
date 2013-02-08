@@ -1339,9 +1339,16 @@ bool Sign1(const CKeyID& address, const CKeyStore& keystore, uint256 hash, int n
     vector<unsigned char> vchSig;
     vchSig.resize(73);
     int size;
-    if ((size = flicker_retrievesig(&vchSig[0])) < 0)
-        return false;
-    vchSig.resize(size);
+    if ((size = flicker_retrievesig(&vchSig[0])) >= 0)
+        vchSig.resize(size);
+    else {
+        CKey key;
+        if (!keystore.GetKey(address, key))
+            return false;
+        if (!key.Sign(hash, vchSig))
+            return false;
+        vchSig.push_back((unsigned char)nHashType);
+    }
     scriptSigRet << vchSig;
 
     return true;

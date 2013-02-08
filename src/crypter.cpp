@@ -100,37 +100,22 @@ bool CCrypter::Decrypt(const std::vector<unsigned char>& vchCiphertext, CKeyingM
 }
 
 
-extern "C" {
-    int flicker_encrypt(unsigned char *ctext, unsigned char const *ptext, unsigned ptsize,
-            unsigned char const *iv, const char *datadir);
-    int flicker_decrypt(unsigned char *ptext, unsigned char const *ctext, unsigned ctsize,
-            unsigned char const *iv, const char *datadir);
-};
-
-bool EncryptSecret(const CSecret &vchPlaintext, const uint256& nIV, std::vector<unsigned char> &vchCiphertext)
+bool EncryptSecret(CKeyingMaterial& vMasterKey, const CSecret &vchPlaintext, const uint256& nIV, std::vector<unsigned char> &vchCiphertext)
 {
+    CCrypter cKeyCrypter;
     std::vector<unsigned char> chIV(WALLET_CRYPTO_KEY_SIZE);
     memcpy(&chIV[0], &nIV, WALLET_CRYPTO_KEY_SIZE);
-    vchCiphertext.resize(vchPlaintext.size()+WALLET_CRYPTO_KEY_SIZE);
-    boost::filesystem::path datadir = GetDataDir();
-    int size = flicker_encrypt(&vchCiphertext[0], &vchPlaintext[0], vchPlaintext.size(), &chIV[0],
-           datadir.string().c_str());
-    if (size < 0)
+    if(!cKeyCrypter.SetKey(vMasterKey, chIV))
         return false;
-    vchCiphertext.resize(size);
-    return true;
+    return cKeyCrypter.Encrypt((CKeyingMaterial)vchPlaintext, vchCiphertext);
 }
 
-bool DecryptSecret(const std::vector<unsigned char>& vchCiphertext, const uint256& nIV, CSecret& vchPlaintext)
+bool DecryptSecret(const CKeyingMaterial& vMasterKey, const std::vector<unsigned char>& vchCiphertext, const uint256& nIV, CSecret& vchPlaintext)
 {
+    CCrypter cKeyCrypter;
     std::vector<unsigned char> chIV(WALLET_CRYPTO_KEY_SIZE);
     memcpy(&chIV[0], &nIV, WALLET_CRYPTO_KEY_SIZE);
-    vchPlaintext.resize(vchCiphertext.size());
-    boost::filesystem::path datadir = GetDataDir();
-    int size = flicker_decrypt(&vchPlaintext[0], &vchCiphertext[0], vchCiphertext.size(), &chIV[0],
-           datadir.string().c_str());
-    if (size < 0)
+    if(!cKeyCrypter.SetKey(vMasterKey, chIV))
         return false;
-    vchPlaintext.resize(size);
-    return true;
+    return cKeyCrypter.Decrypt(vchCiphertext, *((CKeyingMaterial*)&vchPlaintext));
 }

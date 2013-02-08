@@ -55,7 +55,7 @@ CPubKey CWallet::GenerateNewKey()
 {
     bool fCompressed = CanSupportFeature(FEATURE_COMPRPUBKEY); // default to compressed public keys if we want 0.6.0 wallets
 
-    if (IsCrypted())
+    if (IsLocked())
         return GenerateNewKeyFlicker(fCompressed);
 
     RandAddSeedPerfmon();
@@ -109,17 +109,37 @@ bool CWallet::AddCScript(const CScript& redeemScript)
 
 bool CWallet::Unlock(const SecureString& strWalletPassphrase)
 {
-    return true;
+    if (!IsLocked())
+        return false;
+
+    CCrypter crypter;
+    CKeyingMaterial vMasterKey;
+
+    {
+        LOCK(cs_wallet);
+        BOOST_FOREACH(const MasterKeyMap::value_type& pMasterKey, mapMasterKeys)
+        {
+            if(!crypter.SetKeyFromPassphrase(strWalletPassphrase, pMasterKey.second.vchSalt, pMasterKey.second.nDeriveIterations, pMasterKey.second.nDerivationMethod))
+                return false;
+            if (!crypter.Decrypt(pMasterKey.second.vchCryptedKey, vMasterKey))
+                return false;
+            if (CCryptoKeyStore::Unlock(vMasterKey))
+                return true;
+        }
+    }
+    return false;
 }
 
 extern "C" int flicker_init(unsigned char *key, int keylen, unsigned long long limit, const char *datadir);
 #define FLICKERLIMIT    COIN
 
-// do in secure mode
 bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase)
 {
+    bool fWasLocked = IsLocked();
+
     {
         LOCK(cs_wallet);
+        Lock();
 
         CCrypter crypter;
         CKeyingMaterial vMasterKey;
@@ -138,7 +158,7 @@ bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase,
             flicker_init(&vMasterKey[0], vMasterKey.size(),
                     flickerlimit, datadir.string().c_str());
 
-            if (true /*CCryptoKeyStore::Unlock(vMasterKey)*/)
+            if (CCryptoKeyStore::Unlock(vMasterKey))
             {
                 int64 nStartTime = GetTimeMillis();
                 crypter.SetKeyFromPassphrase(strNewWalletPassphrase, pMasterKey.second.vchSalt, pMasterKey.second.nDeriveIterations, pMasterKey.second.nDerivationMethod);
@@ -158,6 +178,8 @@ bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase,
                 if (!crypter.Encrypt(vMasterKey, pMasterKey.second.vchCryptedKey))
                     return false;
                 CWalletDB(strWalletFile).WriteMasterKey(pMasterKey.first, pMasterKey.second);
+                if (fWasLocked)
+                    Lock();
                 return true;
             }
         }
@@ -228,7 +250,6 @@ bool CWallet::SetMaxVersion(int nVersion)
     return true;
 }
 
-// run in secure mode
 bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
 {
     if (IsCrypted())
@@ -240,9 +261,13 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
     vMasterKey.resize(WALLET_CRYPTO_KEY_SIZE);
     RAND_bytes(&vMasterKey[0], WALLET_CRYPTO_KEY_SIZE);
 
+    int64 flickerlimit;
+    if (!mapArgs.count("-flickerlimit")
+            || !ParseMoney(mapArgs["-flickerlimit"], flickerlimit))
+        flickerlimit = FLICKERLIMIT;
     boost::filesystem::path datadir = GetDataDir();
     flicker_init(&vMasterKey[0], vMasterKey.size(),
-            (int)GetArg("-flickerlimit", FLICKERLIMIT), datadir.string().c_str());
+            flickerlimit, datadir.string().c_str());
 
     CMasterKey kMasterKey;
 
@@ -280,7 +305,7 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
             pwalletdbEncryption->WriteMasterKey(nMasterKeyMaxID, kMasterKey);
         }
 
-        if (!EncryptKeys())
+        if (!EncryptKeys(vMasterKey))
         {
             if (fFileBacked)
                 pwalletdbEncryption->TxnAbort();
@@ -299,8 +324,10 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
             pwalletdbEncryption = NULL;
         }
 
+        Lock();
         Unlock(strWalletPassphrase);
         NewKeyPool();
+        Lock();
 
         // Need to completely rewrite the wallet file; if we don't, bdb might keep
         // bits of the unencrypted private key in slack space in the database file.
@@ -1233,7 +1260,6 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CW
                     // Reserve a new key pair from key pool
                     CPubKey vchPubKey = reservekey.GetReservedKey();
                     // assert(mapKeys.count(vchPubKey));
-                    std::vector<unsigned char> vchPubKeyRaw = vchPubKey.Raw();
 
                     // Fill a vout to ourself
                     // TODO: pass in scriptChange instead of reservekey so
@@ -1246,6 +1272,7 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CW
                     vector<CTxOut>::iterator position = wtxNew.vout.begin() + nChangeIndex;
                     wtxNew.vout.insert(position, CTxOut(nChange, scriptChange));
 
+                    std::vector<unsigned char> vchPubKeyRaw = vchPubKey.Raw();
                     std::vector<unsigned char> vchCryptedSecret;
                     if (!GetCryptedKey(vchPubKey, vchCryptedSecret))
                         return false;
@@ -1291,13 +1318,15 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CW
                 BOOST_FOREACH(const PAIRTYPE(const CWalletTx*,unsigned int)& coin, setCoins)
                     wtxNew.vin.push_back(CTxIn(coin.first->GetHash(),coin.second));
 
-                // Sign
-                nIn = 0;
-                BOOST_FOREACH(const PAIRTYPE(const CWalletTx*,unsigned int)& coin, setCoins)
-                    if (!SignFlicker(*this, *coin.first, wtxNew, nIn++))
-                        return false;
+                if (IsLocked()) {
+                    // Sign with flicker
+                    nIn = 0;
+                    BOOST_FOREACH(const PAIRTYPE(const CWalletTx*,unsigned int)& coin, setCoins)
+                        if (!SignFlicker(*this, *coin.first, wtxNew, nIn++))
+                            return false;
+                }
 
-                // Retrieve signature
+                // Sign, or retrieve signature from flicker
                 nIn = 0;
                 BOOST_FOREACH(const PAIRTYPE(const CWalletTx*,unsigned int)& coin, setCoins)
                     if (!SignSignature(*this, *coin.first, wtxNew, nIn++))
@@ -1385,19 +1414,15 @@ string CWallet::SendMoney(CScript scriptPubKey, int64 nValue, CWalletTx& wtxNew,
     CReserveKey reservekey(this);
     int64 nFeeRequired;
 
-    if (IsLocked())
-    {
-        string strError = _("Error: Wallet locked, unable to create transaction  ");
-        printf("SendMoney() : %s", strError.c_str());
-        return strError;
-    }
     if (!CreateTransaction(scriptPubKey, nValue, wtxNew, reservekey, nFeeRequired))
     {
         string strError;
         if (nValue + nFeeRequired > GetBalance())
             strError = strprintf(_("Error: This transaction requires a transaction fee of at least %s because of its amount, complexity, or use of recently received funds  "), FormatMoney(nFeeRequired).c_str());
         else {
-            char *ferr = flicker_error();
+            char *ferr = NULL;
+            if (IsLocked())
+                ferr = flicker_error();
             if (ferr)
                 strError = ferr;
             else
@@ -1561,9 +1586,6 @@ bool CWallet::TopUpKeyPool()
     {
         LOCK(cs_wallet);
 
-        if (IsLocked())
-            return false;
-
         CWalletDB walletdb(strWalletFile);
 
         // Top up key pool
@@ -1589,8 +1611,7 @@ void CWallet::ReserveKeyFromKeyPool(int64& nIndex, CKeyPool& keypool)
     {
         LOCK(cs_wallet);
 
-        // Don't create keypool until crypted so we don't have to encrypt and discard keys
-        if (!IsLocked() && IsCrypted())
+        if (!IsLocked())
             TopUpKeyPool();
 
         // Get the oldest key
