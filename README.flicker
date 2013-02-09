@@ -10,9 +10,7 @@ Copy flicker/examples/pal/bcflick.bin to ~/.bitcoin
 Run make bitcoind in bitcoin/src
 Run chmod 666 /sys/devices/system/cpu/cpu*/online /sys/kernel/flicker/* (you'll probably have to do this after every reboot)
 Boot into a secure mode (eg. boot from a live CD)
-Run regular bitcoind temporarily
-Run bitcoind encryptwallet <passphrase>
 Run bitcoind -flickerlimit=<limit> &  where limit is the maximum daily limit of bitcoins spent
-Run bitcoind walletpassphrasechange <passphrase> <passphrase>
+Run bitcoind encryptwallet <passphrase>
 Boot into a regular mode and flicker will limit the amount spent per day to the limit you have set, without requiring a passphrase
-If you want to spend more, boot into the secure mode and run regular bitcoin with the passphrase
+If you want to spend more, boot into the secure mode and unlock the wallet with the passphrase
