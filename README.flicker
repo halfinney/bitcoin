@@ -3,7 +3,7 @@ Experimental integration of Flicker with Bitcoin
 Get the master branch of flicker working
 Get the master branch of bitcoin working and download the block chain
 Get the flicker branch from http://github.com/halfinney/bitcoin/
-Get the mywork branch from http://sourceforge.net/u/hal/flickertcb/
+Get the mytxtck branch from http://sourceforge.net/u/hal/flickertcb/
 Make a symbolic link called flicker in the bitcoin directory pointing to the flicker/examples/app directory
 Run make in flicker/examples/{app,pal}
 Copy flicker/examples/pal/bcflick.bin to ~/.bitcoin
