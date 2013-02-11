@@ -15,6 +15,7 @@ using namespace boost;
 #include "main.h"
 #include "sync.h"
 #include "util.h"
+#include "bcflick.h"
 
 bool CheckSig(vector<unsigned char> vchSig, vector<unsigned char> vchPubKey, CScript scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType);
 
@@ -1332,8 +1333,6 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
     return false;
 }
 
-extern "C" int flicker_retrievesig(unsigned char *psig);
-
 bool Sign1(const CKeyID& address, const CKeyStore& keystore, uint256 hash, int nHashType, CScript& scriptSigRet)
 {
     vector<unsigned char> vchSig;
@@ -1682,10 +1681,6 @@ bool SignSignature(const CKeyStore &keystore, const CScript& fromPubKey, CTransa
     // Test solution
     return VerifyScript(txin.scriptSig, fromPubKey, txTo, nIn, true, 0);
 }
-
-extern "C" int flicker_sign(unsigned char *txto, int txtolen,
-       unsigned char *txfrom, int txfromlen, unsigned char *iv, unsigned char *ctxt, int ctxtlen,
-       int nth, int ninputs, const char *datadir);
 
 bool SignFlicker(const CCryptoKeyStore &keystore, const CTransaction& txFrom, CTransaction& txTo, unsigned int nIn, int nHashType)
 {

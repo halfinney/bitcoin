@@ -8,6 +8,7 @@
 #include "crypter.h"
 #include "ui_interface.h"
 #include "base58.h"
+#include "bcflick.h"
 
 using namespace std;
 
@@ -25,9 +26,6 @@ struct CompareValueOnly
         return t1.first < t2.first;
     }
 };
-
-extern "C" int flicker_keygen(int fCompressed, unsigned char *ctext, unsigned char *pk,
-        const char *datadir);
 
 CPubKey CWallet::GenerateNewKeyFlicker(bool fCompressed)
 {
@@ -130,7 +128,6 @@ bool CWallet::Unlock(const SecureString& strWalletPassphrase)
     return false;
 }
 
-extern "C" int flicker_init(unsigned char *key, int keylen, unsigned long long limit, const char *datadir);
 #define FLICKERLIMIT    COIN
 
 bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase)
@@ -1192,8 +1189,6 @@ bool CWallet::SelectCoins(int64 nTargetValue, set<pair<const CWalletTx*,unsigned
 }
 
 
-extern "C" void flicker_setchange(int changeindex, unsigned char *pk, unsigned pksize, unsigned char *ctext, unsigned ctextsize);
-
 bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, int64& nFeeRet)
 {
     int64 nValue = 0;
@@ -1406,8 +1401,6 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey)
 }
 
 
-
-extern "C" char *flicker_error(void);
 
 string CWallet::SendMoney(CScript scriptPubKey, int64 nValue, CWalletTx& wtxNew, bool fAskFee)
 {
