@@ -109,7 +109,7 @@ void SendCoinsDialog::on_sendButton_clicked()
         return;
     }
 
-    WalletModel::UnlockContext ctx(model->requestUnlock());
+//    WalletModel::UnlockContext ctx(model->requestUnlock());
 //    if(!ctx.isValid())
 //    {
 //        // Unlock wallet was cancelled
