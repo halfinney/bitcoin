@@ -2,6 +2,7 @@ Experimental integration of Flicker with Bitcoin
 
 Get the master branch of flicker working
 Get the master branch of bitcoin working and download the block chain
+If you have coins, transfer them elsewhere and delete wallet.dat
 Get the flicker branch from http://github.com/halfinney/bitcoin/
 Get the mytxtck branch from http://sourceforge.net/u/hal/flickertcb/
 Make a symbolic link called flicker in the bitcoin directory pointing to the flicker/examples/app directory
@@ -13,4 +14,5 @@ Boot into a secure mode (eg. boot from a live CD)
 Run bitcoind -flickerlimit=<limit> &  where limit is the maximum daily limit of bitcoins spent
 Run bitcoind encryptwallet <passphrase>
 Boot into a regular mode and flicker will limit the amount spent per day to the limit you have set, without requiring a passphrase
+Now you can transfer your funds back, to new addresses in your wallet
 If you want to spend more, boot into the secure mode and unlock the wallet with the passphrase
