@@ -1,12 +1,19 @@
 Experimental integration of Flicker with Bitcoin
 
-Get the master branch of flicker working
-Get the master branch of bitcoin working and download the block chain
-If you have coins, transfer them elsewhere and delete wallet.dat
-Get the flicker branch from http://github.com/halfinney/bitcoin/
-Get the mytxtck branch from http://sourceforge.net/u/hal/flickertcb/
+Set up the TPM:
+Get TPM/J from http://projects.csail.mit.edu/tc/tpmj/
+Enable the TPM in BIOS
+Take ownership of the TPM with sudo java edu.mit.csail.tpmj.tools.TPMTakeOwnership <ownerpwd>
+Create a counter with sudo java edu.mit.csail.tpmj.tools.TPMCreateCounter <ownerpwd> BITC
+
+Get the master branch of flicker working, git clone git://git.code.sf.net/p/flickertcb/code
+Get the master branch of bitcoin working, git clone https://github.com/bitcoin/bitcoin.git
+Download the bitcoin block chain
+If you have bitcoins, transfer them elsewhere and delete wallet.dat
+Get the flicker branch, git clone http://github.com/halfinney/bitcoin/
+Get the mytxtck branch, git clone http://sourceforge.net/u/hal/flickertcb/
 Make a symbolic link called flicker in the bitcoin directory pointing to the flicker/examples/app directory
-Run make in flicker/examples/{app,pal}
+Run make in flicker/examples/{app,pal/libtommath,pal}
 Copy flicker/examples/pal/bcflick.bin to ~/.bitcoin
 Run make bitcoind in bitcoin/src
 Run chmod 666 /sys/devices/system/cpu/cpu*/online /sys/kernel/flicker/* (you'll probably have to do this after every reboot)
