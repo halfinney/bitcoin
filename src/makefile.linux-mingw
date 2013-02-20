@@ -4,6 +4,9 @@
 
 DEPSDIR:=/usr/i586-mingw32msvc
 
+CC := i586-mingw32msvc-gcc
+CXX := i586-mingw32msvc-g++
+
 USE_UPNP:=0
 USE_IPV6:=1
 
@@ -21,6 +24,7 @@ LIBPATHS= \
  -L"$(DEPSDIR)/openssl-1.0.1c"
 
 LIBS= \
+  $(CURDIR)/leveldb/libleveldb.a $(CURDIR)/leveldb/libmemenv.a \
  -l boost_system-mt-s \
  -l boost_filesystem-mt-s \
  -l boost_program_options-mt-s \
@@ -33,7 +37,8 @@ LIBS= \
 DEFS=-D_MT -DWIN32 -D_WINDOWS -DBOOST_THREAD_USE_LIB -DBOOST_SPIRIT_THREADSAFE
 DEBUGFLAGS=-g
 CFLAGS=-O2 -w -Wall -Wextra -Wformat -Wformat-security -Wno-unused-parameter $(DEBUGFLAGS) $(DEFS) $(INCLUDEPATHS)
-LDFLAGS=-Wl,--dynamicbase -Wl,--nxcompat
+# enable: ASLR, DEP and large address aware
+LDFLAGS=-Wl,--dynamicbase -Wl,--nxcompat -Wl,--large-address-aware
 
 TESTDEFS = -DTEST_DATA_DIR=$(abspath test/data)
 
@@ -56,6 +61,7 @@ LIBS += -l mingwthrd -l kernel32 -l user32 -l gdi32 -l comdlg32 -l winspool -l w
 HEADERS = $(wildcard *.h)
 
 OBJS= \
+    leveldb/libleveldb.a \
     obj/alert.o \
     obj/version.o \
     obj/checkpoints.o \
@@ -82,9 +88,18 @@ OBJS= \
     obj/util.o \
     obj/wallet.o \
     obj/walletdb.o \
-    obj/noui.o
+    obj/noui.o \
+    obj/hash.o \
+    obj/bloom.o \
+    obj/leveldb.o \
+    obj/txdb.o
 
 all: bitcoind.exe
+
+DEFS += -I"$(CURDIR)/leveldb/include"
+DEFS += -I"$(CURDIR)/leveldb/helpers"
+leveldb/libleveldb.a:
+	@echo "Building LevelDB ..." && cd leveldb && TARGET_OS=OS_WINDOWS_CROSSCOMPILE $(MAKE) CC=$(CC) CXX=$(CXX) OPT="$(CFLAGS)" libleveldb.a libmemenv.a && i586-mingw32msvc-ranlib libleveldb.a && i586-mingw32msvc-ranlib libmemenv.a && cd ..
 
 obj/build.h: FORCE
 	/bin/sh ../share/genbuild.sh obj/build.h
@@ -92,18 +107,18 @@ version.cpp: obj/build.h
 DEFS += -DHAVE_BUILD_INFO
 
 obj/%.o: %.cpp $(HEADERS)
-	i586-mingw32msvc-g++ -c $(CFLAGS) -o $@ $<
+	$(CXX) -c $(CFLAGS) -o $@ $<
 
 bitcoind.exe: $(OBJS:obj/%=obj/%)
-	i586-mingw32msvc-g++ $(CFLAGS) $(LDFLAGS) -o $@ $(LIBPATHS) $^ $(LIBS)
+	$(CXX) $(CFLAGS) $(LDFLAGS) -o $@ $(LIBPATHS) $^ $(LIBS)
 
 TESTOBJS := $(patsubst test/%.cpp,obj-test/%.o,$(wildcard test/*.cpp))
 
 obj-test/%.o: test/%.cpp $(HEADERS)
-	i586-mingw32msvc-g++ -c $(TESTDEFS) $(CFLAGS) -o $@ $<
+	$(CXX) -c $(TESTDEFS) $(CFLAGS) -o $@ $<
 
 test_bitcoin.exe: $(TESTOBJS) $(filter-out obj/init.o,$(OBJS:obj/%=obj/%))
-	i586-mingw32msvc-g++ $(CFLAGS) $(LDFLAGS) -o $@ $(LIBPATHS) $^ -lboost_unit_test_framework-mt-s $(LIBS)
+	$(CXX) $(CFLAGS) $(LDFLAGS) -o $@ $(LIBPATHS) $^ -lboost_unit_test_framework-mt-s $(LIBS)
 
 
 clean:
@@ -112,5 +127,6 @@ clean:
 	-rm -f obj-test/*.o
 	-rm -f test_bitcoin.exe
 	-rm -f obj/build.h
+	cd leveldb && TARGET_OS=OS_WINDOWS_CROSSCOMPILE $(MAKE) clean && cd ..
 
 FORCE:

@@ -2,9 +2,10 @@
 
 * update (commit) version in sources
   bitcoin-qt.pro
-  src/clientversion.h
+  src/clientversion.h (change CLIENT_VERSION_IS_RELEASE to true)
   share/setup.nsi
   doc/README*
+  contrib/verifysfbinaries/verify.sh
 
 * tag version in git
 
@@ -30,12 +31,12 @@
    wget 'ftp://ftp.simplesystems.org/pub/libpng/png/src/libpng-1.5.9.tar.gz'
    wget 'http://fukuchi.org/works/qrencode/qrencode-3.2.0.tar.bz2'
    wget 'http://downloads.sourceforge.net/project/boost/boost/1.50.0/boost_1_50_0.tar.bz2'
-   wget 'http://releases.qt-project.org/qt4/source/qt-everywhere-opensource-src-4.8.2.tar.gz'
+   wget 'http://releases.qt-project.org/qt4/source/qt-everywhere-opensource-src-4.8.3.tar.gz'
    cd ..
    ./bin/gbuild ../bitcoin/contrib/gitian-descriptors/boost-win32.yml
    mv build/out/boost-win32-1.50.0-gitian2.zip inputs/
    ./bin/gbuild ../bitcoin/contrib/gitian-descriptors/qt-win32.yml
-   mv build/out/qt-win32-4.8.2-gitian-r1.zip inputs/
+   mv build/out/qt-win32-4.8.3-gitian-r1.zip inputs/
    ./bin/gbuild ../bitcoin/contrib/gitian-descriptors/deps-win32.yml
    mv build/out/bitcoin-deps-0.0.5.zip inputs/
 
@@ -72,12 +73,7 @@
    rm -rf bitcoin-${VERSION}-win32
 
 * perform Mac build
-  See this blog post for how Gavin set up his build environment to build the OSX
-  release; note that a patched version of macdeployqt is not needed anymore, as
-  the required functionality and fixes are implemented directly in macdeployqtplus:
-    http://gavintech.blogspot.com/2011/11/deploying-bitcoin-qt-on-osx.html
-  Gavin also had trouble with the macports py27-appscript package; he
-  ended up installing a version that worked with: /usr/bin/easy_install-2.7 appscript
+  OSX binaries are created by Gavin Andresen on a 32-bit, OSX 10.6 machine.
 
   qmake RELEASE=1 USE_UPNP=1 USE_QRCODE=1 bitcoin-qt.pro
   make
@@ -87,6 +83,9 @@
 
  Build output expected:
   Bitcoin-Qt.dmg
+
+* Code-sign Windows -setup.exe (in a Windows virtual machine) and
+  OSX Bitcoin-Qt.app (Note: only Gavin has the code-signing keys currently)
 
 * upload builds to SourceForge
 

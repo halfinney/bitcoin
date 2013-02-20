@@ -7,7 +7,6 @@
 #include "optionsmodel.h"
 #include "guiutil.h"
 #include "guiconstants.h"
-
 #include "init.h"
 #include "ui_interface.h"
 #include "qtipcserver.h"
@@ -35,32 +34,37 @@ Q_IMPORT_PLUGIN(qtaccessiblewidgets)
 static BitcoinGUI *guiref;
 static QSplashScreen *splashref;
 
-static void ThreadSafeMessageBox(const std::string& message, const std::string& caption, int style)
+static bool ThreadSafeMessageBox(const std::string& message, const std::string& caption, unsigned int style)
 {
     // Message from network thread
     if(guiref)
     {
         bool modal = (style & CClientUIInterface::MODAL);
-        // in case of modal message, use blocking connection to wait for user to click OK
-        QMetaObject::invokeMethod(guiref, "error",
+        bool ret = false;
+        // In case of modal message, use blocking connection to wait for user to click a button
+        QMetaObject::invokeMethod(guiref, "message",
                                    modal ? GUIUtil::blockingGUIThreadConnection() : Qt::QueuedConnection,
                                    Q_ARG(QString, QString::fromStdString(caption)),
                                    Q_ARG(QString, QString::fromStdString(message)),
-                                   Q_ARG(bool, modal));
+                                   Q_ARG(unsigned int, style),
+                                   Q_ARG(bool*, &ret));
+        return ret;
     }
     else
     {
         printf("%s: %s\n", caption.c_str(), message.c_str());
         fprintf(stderr, "%s: %s\n", caption.c_str(), message.c_str());
+        return false;
     }
 }
 
-static bool ThreadSafeAskFee(int64 nFeeRequired, const std::string& strCaption)
+static bool ThreadSafeAskFee(int64 nFeeRequired)
 {
     if(!guiref)
         return false;
     if(nFeeRequired < MIN_TX_FEE || nFeeRequired <= nTransactionFee || fDaemon)
         return true;
+
     bool payFee = false;
 
     QMetaObject::invokeMethod(guiref, "askFee", GUIUtil::blockingGUIThreadConnection(),
@@ -86,6 +90,7 @@ static void InitMessage(const std::string &message)
         splashref->showMessage(QString::fromStdString(message), Qt::AlignBottom|Qt::AlignHCenter, QColor(255,255,200));
         QApplication::instance()->processEvents();
     }
+    printf("init message: %s\n", message.c_str());
 }
 
 static void QueueShutdown()
@@ -113,6 +118,14 @@ static void handleRunawayException(std::exception *e)
 #ifndef BITCOIN_QT_TEST
 int main(int argc, char *argv[])
 {
+    // Command-line options take precedence:
+    ParseParameters(argc, argv);
+
+    if(GetBoolArg("-testnet")) // Separate message queue name for testnet
+        strBitcoinURIQueueName = BITCOINURI_QUEUE_NAME_TESTNET;
+    else
+        strBitcoinURIQueueName = BITCOINURI_QUEUE_NAME_MAINNET;
+
     // Do this early as we don't want to bother initializing if we are just calling IPC
     ipcScanRelay(argc, argv);
 
@@ -125,9 +138,6 @@ int main(int argc, char *argv[])
 
     // Install global event filter that makes sure that long tooltips can be word-wrapped
     app.installEventFilter(new GUIUtil::ToolTipToRichTextFilter(TOOLTIP_WRAP_THRESHOLD, &app));
-
-    // Command-line options take precedence:
-    ParseParameters(argc, argv);
 
     // ... then bitcoin.conf:
     if (!boost::filesystem::is_directory(GetDataDir(false)))

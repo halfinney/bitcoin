@@ -128,7 +128,6 @@ void OptionsDialog::setMapper()
     /* Main */
     mapper->addMapping(ui->transactionFee, OptionsModel::Fee);
     mapper->addMapping(ui->bitcoinAtStartup, OptionsModel::StartAtStartup);
-    mapper->addMapping(ui->detachDatabases, OptionsModel::DetachDatabases);
 
     /* Network */
     mapper->addMapping(ui->mapPortUpnp, OptionsModel::MapPortUPnP);
@@ -176,6 +175,33 @@ void OptionsDialog::setSaveButtonState(bool fState)
 {
     ui->applyButton->setEnabled(fState);
     ui->okButton->setEnabled(fState);
+}
+
+void OptionsDialog::on_resetButton_clicked()
+{
+    if(model)
+    {
+        // confirmation dialog
+        QMessageBox::StandardButton btnRetVal = QMessageBox::question(this, tr("Confirm options reset"),
+            tr("Some settings may require a client restart to take effect.") + "<br><br>" + tr("Do you want to proceed?"),
+            QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
+
+        if(btnRetVal == QMessageBox::Cancel)
+            return;
+
+        disableApplyButton();
+
+        /* disable restart warning messages display */
+        fRestartWarningDisplayed_Lang = fRestartWarningDisplayed_Proxy = true;
+
+        /* reset all options and save the default values (QSettings) */
+        model->Reset();
+        mapper->toFirst();
+        mapper->submit();
+
+        /* re-enable restart warning messages display */
+        fRestartWarningDisplayed_Lang = fRestartWarningDisplayed_Proxy = false;
+    }
 }
 
 void OptionsDialog::on_okButton_clicked()
