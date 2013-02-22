@@ -8,13 +8,25 @@ Debian
 -------
 
 First, make sure that the required packages for Qt4 development of your
-distribution are installed, for Debian and Ubuntu these are:
+distribution are installed, these are
+
+::
+
+for Debian and Ubuntu  <= 11.10 :
 
 ::
 
     apt-get install qt4-qmake libqt4-dev build-essential libboost-dev libboost-system-dev \
         libboost-filesystem-dev libboost-program-options-dev libboost-thread-dev \
         libssl-dev libdb4.8++-dev
+
+for Ubuntu >= 12.04 (please read the 'Berkely DB version warning' below):
+
+::
+
+    apt-get install qt4-qmake libqt4-dev build-essential libboost-dev libboost-system-dev \
+        libboost-filesystem-dev libboost-program-options-dev libboost-thread-dev \
+        libssl-dev libdb++-dev libminiupnpc-dev
 
 then execute the following:
 
@@ -28,25 +40,6 @@ Alternatively, install `Qt Creator`_ and open the `bitcoin-qt.pro` file.
 An executable named `bitcoin-qt` will be built.
 
 .. _`Qt Creator`: http://qt-project.org/downloads/
-
-Windows
---------
-
-Windows build instructions:
-
-- Download the `Qt Windows SDK`_ and install it. You don't need the Symbian stuff, just the desktop Qt.
-
-- Download and extract the `dependencies archive`_  [#]_, or compile openssl, boost and dbcxx yourself.
-
-- Copy the contents of the folder "deps" to "X:\\QtSDK\\mingw", replace X:\\ with the location where you installed the Qt SDK. Make sure that the contents of "deps\\include" end up in the current "include" directory.
-
-- Open the bitcoin-qt.pro file in Qt Creator and build as normal (ctrl-B)
-
-.. _`Qt Windows SDK`: http://qt-project.org/downloads/
-.. _`dependencies archive`: https://download.visucore.com/bitcoin/qtgui_deps_1.zip
-.. [#] PGP signature: https://download.visucore.com/bitcoin/qtgui_deps_1.zip.sig (signed with RSA key ID `610945D0`_)
-.. _`610945D0`: http://pgp.mit.edu:11371/pks/lookup?op=get&search=0x610945D0
-
 
 Mac OS X
 --------
