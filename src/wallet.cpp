@@ -40,7 +40,7 @@ CPubKey CWallet::GenerateNewKeyFlicker(bool fCompressed)
     int size = flicker_keygen(fCompressed, &vchCryptedSecret[0], &vchPK[0],
            datadir.string().c_str());
     if (size < 0)
-        throw std::runtime_error("CWallet::GenerateNewKey() : flicker_keygen failed");
+        throw std::runtime_error(flicker_error());
     vchCryptedSecret.resize(size);
 
     CPubKey pubkey(vchPK);
@@ -152,8 +152,9 @@ bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase,
                     || !ParseMoney(mapArgs["-flickerlimit"], flickerlimit))
                 flickerlimit = FLICKERLIMIT;
             boost::filesystem::path datadir = GetDataDir();
-            flicker_init(&vMasterKey[0], vMasterKey.size(),
-                    flickerlimit, datadir.string().c_str());
+            if (flicker_init(&vMasterKey[0], vMasterKey.size(),
+                    flickerlimit, datadir.string().c_str()) != 0)
+                throw std::runtime_error(flicker_error());
 
             if (CCryptoKeyStore::Unlock(vMasterKey))
             {
@@ -263,8 +264,9 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
             || !ParseMoney(mapArgs["-flickerlimit"], flickerlimit))
         flickerlimit = FLICKERLIMIT;
     boost::filesystem::path datadir = GetDataDir();
-    flicker_init(&vMasterKey[0], vMasterKey.size(),
-            flickerlimit, datadir.string().c_str());
+    if (flicker_init(&vMasterKey[0], vMasterKey.size(),
+                flickerlimit, datadir.string().c_str()) != 0)
+        throw std::runtime_error(flicker_error());
 
     CMasterKey kMasterKey;
 
