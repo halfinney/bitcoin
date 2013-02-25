@@ -1301,7 +1301,6 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CW
 
                 // Check size
                 unsigned int nBytesReal = ::GetSerializeSize(*(CTransaction*)&wtxNew, SER_NETWORK, PROTOCOL_VERSION);
-                fprintf(stdout, "Sign: size estimate %d, real %d\n", nBytes, nBytesReal);
                 if (nBytesReal > nBytes)
                     return false;
 
