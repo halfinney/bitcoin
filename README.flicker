@@ -7,11 +7,11 @@ Take ownership of the TPM with sudo java edu.mit.csail.tpmj.tools.TPMTakeOwnersh
 Create a counter with sudo java edu.mit.csail.tpmj.tools.TPMCreateCounter <ownerpwd> BITC
 
 Get the master branch of flicker working, git clone git://git.code.sf.net/p/flickertcb/code
-Get the master branch of bitcoin working, git clone https://github.com/bitcoin/bitcoin.git
+Get the master branch of bitcoin working, git clone git://github.com/bitcoin/bitcoin.git
 Download the bitcoin block chain
 If you have bitcoins, transfer them elsewhere and delete wallet.dat
 Get the flicker branch, git clone http://github.com/halfinney/bitcoin/
-Get the mytxtck branch, git clone http://sourceforge.net/u/hal/flickertcb/
+Get the mytxtck branch, git clone git://git.code.sf.net/u/hal/flickertcb
 Make a symbolic link called flicker in the bitcoin directory pointing to the flicker/examples/app directory
 Run make in flicker/examples/{app,pal/libtommath,pal}
 Copy flicker/examples/pal/bcflick.bin to ~/.bitcoin
