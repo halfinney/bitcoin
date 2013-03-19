@@ -60,6 +60,8 @@ SendCoinsDialog::~SendCoinsDialog()
     delete ui;
 }
 
+extern "C" char *flicker_error(void);
+
 void SendCoinsDialog::on_sendButton_clicked()
 {
     QList<SendCoinsRecipient> recipients;
@@ -147,9 +149,10 @@ void SendCoinsDialog::on_sendButton_clicked()
             QMessageBox::Ok, QMessageBox::Ok);
         break;
     case WalletModel::TransactionCreationFailed:
+        {char *ferr = flicker_error();
         QMessageBox::warning(this, tr("Send Coins"),
-            tr("Error: Transaction creation failed!"),
-            QMessageBox::Ok, QMessageBox::Ok);
+            ferr?tr(ferr):tr("Error: Transaction creation failed!"),
+            QMessageBox::Ok, QMessageBox::Ok);}
         break;
     case WalletModel::TransactionCommitFailed:
         QMessageBox::warning(this, tr("Send Coins"),
